@@ -1,0 +1,19 @@
+name: healthcare-scheduling-env
+version: 1.0
+description: AI Healthcare Scheduling Environment
+
+entry_point: env.environment:HealthcareEnv
+
+observation_space:
+  type: Observation
+
+action_space:
+  type: Action
+
+reward_space:
+  type: Reward
+
+tasks:
+  - easy
+  - medium
+  - hard
