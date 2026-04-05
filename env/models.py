@@ -1,30 +1,57 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Literal
 
 
+# -----------------------------
+# Patient Model
+# -----------------------------
 class Patient(BaseModel):
     id: str
+    age: int
+    severity: int
+    condition: str
     symptoms: str
-    urgency: str  
+    wait_time: int
+    deadline: int
 
 
+# -----------------------------
+# Doctor Model
+# -----------------------------
 class Doctor(BaseModel):
+    id: str
     name: str
-    specialization: str
-    available_slots: List[str]
+    specialty: str
+    experience: int
+    available: bool
+    busy_until: int
 
 
-class Observation(BaseModel):
-    patient: Patient
+# -----------------------------
+# State (Observation)
+# -----------------------------
+class State(BaseModel):
+    time: int
+    patients_waiting: List[Patient]
     doctors: List[Doctor]
+    rooms_available: int
+    treated_patients: List[Patient]
 
 
+# -----------------------------
+# Action Model
+# -----------------------------
 class Action(BaseModel):
-    doctor: str
-    time: str
-    priority: str
+    action_type: Literal["assign", "wait"]
+    patient_id: Optional[str] = None
+    doctor_id: Optional[str] = None
 
 
-class Reward(BaseModel):
-    score: float
-    feedback: str
+# -----------------------------
+# Step Response (CRITICAL)
+# -----------------------------
+class StepResponse(BaseModel):
+    state: State
+    reward: float
+    done: bool
+    info: dict

@@ -1,0 +1,7 @@
+[
+  {"id": "p1", "age": 65, "severity": 9, "condition": "cardiac", "symptoms": "chest pain", "deadline": 2},
+  {"id": "p2", "age": 45, "severity": 6, "condition": "general", "symptoms": "fever", "deadline": 5},
+  {"id": "p3", "age": 70, "severity": 10, "condition": "cardiac", "symptoms": "heart attack", "deadline": 1},
+  {"id": "p4", "age": 30, "severity": 4, "condition": "general", "symptoms": "cold", "deadline": 6},
+  {"id": "p5", "age": 55, "severity": 7, "condition": "cardiac", "symptoms": "arrhythmia", "deadline": 3}
+]
