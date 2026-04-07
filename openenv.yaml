@@ -1,19 +1,25 @@
-name: healthcare-scheduling-env
+name: healthcare-env
 version: 1.0
-description: AI Healthcare Scheduling Environment
 
-entry_point: env.environment:HealthcareEnv
+api:
+  base_url: http://localhost:7860
 
-observation_space:
-  type: Observation
-
-action_space:
-  type: Action
-
-reward_space:
-  type: Reward
+endpoints:
+  reset:
+    path: /reset
+    method: POST
+  step:
+    path: /step
+    method: POST
+  state:
+    path: /state
+    method: GET
 
 tasks:
   - easy
   - medium
   - hard
+
+reward:
+  type: float
+  range: [0.0, 1.0]

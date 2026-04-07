@@ -1,86 +1,63 @@
 import os
 import requests
+from openai import OpenAI
 
-# ENV VARIABLES (MANDATORY)
-API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN", "dummy")
+# Competition Standard Variables
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+# Use getenv for security; local fallback only for your final test
+HF_TOKEN = os.getenv("HF_TOKEN")
 
+# The internal URL for Docker/HF Spaces
+ENV_URL = "http://127.0.0.1:8000" 
 
-# -----------------------------
-# SIMPLE AGENT POLICY
-# -----------------------------
-def agent_policy(state):
-    patients = state.get("patients_waiting", [])
-    doctors = state.get("doctors", [])
+client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
 
-    # Sort by severity + wait_time
-    patients = sorted(
-        patients,
-        key=lambda x: (-x["severity"], -x["wait_time"])
-    )
-
-    for p in patients:
-        # Prefer matching specialty
-        for d in doctors:
-            if d["available"] and d["specialty"] == p["condition"]:
-                return {
-                    "action_type": "assign",
-                    "patient_id": p["id"],
-                    "doctor_id": d["id"]
-                }
-
-        # fallback: any available doctor
-        for d in doctors:
-            if d["available"]:
-                return {
-                    "action_type": "assign",
-                    "patient_id": p["id"],
-                    "doctor_id": d["id"]
-                }
-
-    return {"action_type": "wait"}
-
-
-# -----------------------------
-# RUN EPISODE
-# -----------------------------
-def run_episode(task="easy"):
-    print("[START]")
-
-    # Reset environment
-    response = requests.post(
-        f"{API_BASE_URL}/reset",
-        json={"task": task}
-    )
-    state = response.json()
+def run_task(task_name):
+    # [START] Tag is required
+    print(f"[START] task={task_name} env=healthcare model={MODEL_NAME}")
+    
+    try:
+        res = requests.post(f"{ENV_URL}/reset", json={"task": task_name}).json()
+        state = res.get("state", {})
+    except:
+        return
 
     done = False
-    step_count = 0
+    step_idx = 1
+    rewards = []
 
-    while not done:
-        action = agent_policy(state)
+    while not done and step_idx <= 10:
+        prompt = f"Hospital State: {state}. Which patient should go to which doctor? Reply ONLY with assign('p_id', 'd_id') or wait()."
+        
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=20
+        )
+        action_str = response.choices[0].message.content.strip()
 
-        result = requests.post(
-            f"{API_BASE_URL}/step",
-            json=action
-        ).json()
+        try:
+            res = requests.post(f"{ENV_URL}/step", json={"action": action_str}).json()
+            reward = float(res.get("reward", 0.0))
+            done = res.get("done", False)
+            state = res.get("state", {})
+            rewards.append(reward)
+            
+            # [STEP] Tag is required
+            print(f"[STEP] step={step_idx} action={action_str} reward={reward:.2f} done={str(done).lower()} error=null")
+        except Exception as e:
+            print(f"[STEP] step={step_idx} action={action_str} reward=0.00 done=true error={str(e)}")
+            break
+        
+        step_idx += 1
 
-        reward = result.get("reward", 0)
-        done = result.get("done", False)
-        state = result.get("state", {})
+    # [END] Tag calculation
+    score = sum(rewards) / len(rewards) if rewards else 0.0
+    success = "true" if score > 0.1 else "false"
+    rewards_str = ",".join([f"{r:.2f}" for r in rewards])
+    print(f"[END] success={success} steps={step_idx-1} score={score:.2f} rewards={rewards_str}")
 
-        print(f"[STEP] {step_count} | action={action} | reward={reward}")
-
-        step_count += 1
-
-    print("[END]")
-
-
-# -----------------------------
-# MAIN
-# -----------------------------
 if __name__ == "__main__":
-    # Run all tasks
-    for task in ["easy", "medium", "hard"]:
-        run_episode(task)
+    for t in ["easy", "medium", "hard"]:
+        run_task(t)
