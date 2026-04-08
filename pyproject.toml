@@ -16,7 +16,7 @@ dependencies = [
 
 # CRITICAL: Added the entry point they asked for
 [project.scripts]
-server = "app.main:app"
+server = "server.app:main"
 
 [build-system]
 requires = ["hatchling"]

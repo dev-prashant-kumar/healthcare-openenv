@@ -1,5 +1,9 @@
+import uvicorn
 from app.main import app
 
-if __name__ == "__main__":
-    import uvicorn
+def main():
+    """Main entry point for the server as required by OpenEnv validator."""
     uvicorn.run(app, host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    main()
