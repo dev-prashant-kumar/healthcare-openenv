@@ -1,5 +1,5 @@
-from pydantic import BaseModel
-from typing import List, Optional, Literal
+from pydantic import BaseModel, Field
+from typing import List, Optional, Literal, Dict, Any
 
 
 # -----------------------------
@@ -8,11 +8,11 @@ from typing import List, Optional, Literal
 class Patient(BaseModel):
     id: str
     age: int
-    severity: int
+    severity: int = Field(ge=0, le=10)   
     condition: str
     symptoms: str
-    wait_time: int
-    deadline: int
+    wait_time: int = Field(ge=0)
+    deadline: int = Field(ge=1)
 
 
 # -----------------------------
@@ -22,19 +22,19 @@ class Doctor(BaseModel):
     id: str
     name: str
     specialty: str
-    experience: int
+    experience: int = Field(ge=0, le=20)  
     available: bool
-    busy_until: int
+    busy_until: int = Field(ge=0)
 
 
 # -----------------------------
 # State (Observation)
 # -----------------------------
 class State(BaseModel):
-    time: int
+    time: int = Field(ge=0)
     patients_waiting: List[Patient]
     doctors: List[Doctor]
-    rooms_available: int
+    rooms_available: int = Field(ge=0)
     treated_patients: List[Patient]
 
 
@@ -54,4 +54,4 @@ class StepResponse(BaseModel):
     state: State
     reward: float
     done: bool
-    info: dict
+    info: Dict[str, Any] = {}   

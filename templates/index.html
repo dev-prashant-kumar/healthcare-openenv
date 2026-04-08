@@ -38,6 +38,7 @@
         background: #334155;
         border-radius: 4px;
       }
+
       @keyframes fade-in-up {
         from {
           opacity: 0;
@@ -48,18 +49,20 @@
           transform: translateY(0);
         }
       }
+
       .animate-fade-in-up {
         animation: fade-in-up 0.3s ease-out;
       }
     </style>
   </head>
 
-  <div
-    id="toast-container"
-    class="fixed top-5 left-1/2 -translate-x-1/2 space-y-3 z-50"
-  ></div>
-
   <body class="min-h-screen p-4 md:p-8">
+    <!-- ✅ TOAST CONTAINER (FIXED POSITION) -->
+    <div
+      id="toast-container"
+      class="fixed top-5 left-1/2 -translate-x-1/2 space-y-3 z-50"
+    ></div>
+
     <div class="max-w-5xl mx-auto">
       <!-- HEADER -->
       <div class="flex items-center justify-between mb-8">
@@ -143,9 +146,7 @@
           <pre
             id="state-json"
             class="p-6 text-emerald-400 h-[400px] overflow-auto"
-          >
-{}</pre
-          >
+          >{}</pre>
         </div>
       </div>
     </div>
@@ -159,10 +160,8 @@
           const res = await fetch("/state");
           const data = await res.json();
 
-          // ✅ Backend is working → reset error flag
           backendDownShown = false;
 
-          // RAW JSON
           document.getElementById("state-json").innerText = JSON.stringify(
             data,
             null,
@@ -175,14 +174,13 @@
           const taskDisplay = document.getElementById("current-task");
           const stepDisplay = document.getElementById("step-count");
 
-          // -----------------------------
-          // AGENT STATUS
-          // -----------------------------
+          // ✅ AGENT STATUS
           if (data.agent) {
-            rewardDisplay.innerText = (data.agent.total_reward || 0).toFixed(2);
+            rewardDisplay.innerText = Number(
+              data.agent?.total_reward || 0
+            ).toFixed(2);
 
             if (data.agent.is_running) {
-              // 🔵 RUNNING
               wasRunning = true;
 
               btn.disabled = true;
@@ -193,7 +191,6 @@
               statusPill.className =
                 "px-4 py-1 rounded-full text-xs font-mono uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
             } else {
-              // ✅ FINISHED (trigger toast ONCE)
               if (wasRunning) {
                 showToast(
                   `✅ Simulation Complete! Reward: ${data.agent.total_reward.toFixed(
@@ -204,7 +201,6 @@
                 wasRunning = false;
               }
 
-              // 🔄 RESET BUTTON
               btn.disabled = false;
               btn.innerText = "Launch AI Agent";
               btn.classList.remove("cursor-not-allowed");
@@ -215,19 +211,14 @@
             }
           }
 
-          // -----------------------------
-          // TASK NAME
-          // -----------------------------
+          // ✅ TASK
           taskDisplay.innerText = data.task || "None";
 
-          // -----------------------------
-          // PROGRESS
-          // -----------------------------
+          // ✅ PROGRESS
           if (data.time !== undefined) {
             stepDisplay.innerText = `${Math.min(data.time, 10)}/10`;
           }
         } catch (e) {
-          // ❌ Show error only once (no spam)
           if (!backendDownShown) {
             showToast("⚠️ Backend not responding", "error");
             backendDownShown = true;
@@ -235,9 +226,6 @@
         }
       }
 
-      // -----------------------------
-      // START AGENT
-      // -----------------------------
       async function startAgent() {
         const task = document.getElementById("task-select").value;
         const btn = document.getElementById("start-btn");
@@ -265,12 +253,8 @@
         }
       }
 
-      // -----------------------------
-      // TOAST SYSTEM
-      // -----------------------------
       function showToast(message, type = "info") {
         const container = document.getElementById("toast-container");
-
         if (!container) return;
 
         const toast = document.createElement("div");
@@ -280,10 +264,10 @@
         if (type === "error") bgColor = "bg-red-500";
 
         toast.className = `
-      px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white
-      ${bgColor}
-      animate-fade-in-up
-    `;
+          px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white
+          ${bgColor}
+          animate-fade-in-up
+        `;
 
         toast.innerText = message;
 
@@ -294,9 +278,6 @@
         }, 3000);
       }
 
-      // -----------------------------
-      // AUTO REFRESH
-      // -----------------------------
       setInterval(fetchState, 2000);
       fetchState();
     </script>

@@ -4,7 +4,6 @@ import asyncio
 from fastapi import FastAPI, Request, BackgroundTasks
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-
 from openai import OpenAI
 
 from env.environment import HealthcareEnv
@@ -19,7 +18,12 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 
 client = None
 if HF_TOKEN:
-    client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+    try:
+        client = OpenAI(base_url=API_BASE_URL, api_key=HF_TOKEN)
+        print("✅ LLM Connected")
+    except Exception as e:
+        print("❌ LLM Init Failed:", e)
+        client = None
 
 # -----------------------------
 # APP INIT
@@ -29,7 +33,7 @@ env = None
 templates = Jinja2Templates(directory="templates")
 
 # -----------------------------
-# AGENT STATUS (GLOBAL)
+# AGENT STATUS
 # -----------------------------
 agent_status = {
     "is_running": False,
@@ -64,6 +68,20 @@ def parse_action(action_str: str):
     return {"action_type": "wait"}
 
 # -----------------------------
+# RESET
+# -----------------------------
+@app.post("/reset")
+async def reset(request: Request):
+    global env
+    data = await request.json()
+    task = data.get("task", "easy")
+
+    env = HealthcareEnv(task_type=task)
+    state = env.reset()
+
+    return {"state": state.dict() if hasattr(state, "dict") else state}
+
+# -----------------------------
 # STEP
 # -----------------------------
 @app.post("/step")
@@ -76,34 +94,44 @@ async def step(request: Request):
     action_str = data.get("action", "wait()")
 
     action = Action(**parse_action(action_str))
-    return env.step(action)
+    result = env.step(action)
+
+    return {
+        "reward": result.reward,
+        "done": result.done,
+        "state": result.state.dict() if hasattr(result.state, "dict") else result.state
+    }
 
 # -----------------------------
-# RESET
-# -----------------------------
-@app.post("/reset")
-async def reset(request: Request):
-    global env
-    data = await request.json()
-    env = HealthcareEnv(task_type=data.get("task", "easy"))
-    return {"state": env.reset()}
-
-# -----------------------------
-# FALLBACK POLICY
+# FALLBACK POLICY (SMART)
 # -----------------------------
 def fallback_policy(state):
-    patients = sorted(state.patients_waiting, key=lambda p: p.severity, reverse=True)
+    patients = state.patients_waiting
+    doctors = state.doctors
+
+    best_score = -1
+    best_action = None
 
     for p in patients:
-        for d in state.doctors:
-            if d.available:
-                return Action(
+        for d in doctors:
+            if not d.available:
+                continue
+
+            severity_score = p.severity * 2
+            wait_score = getattr(p, "waiting_time", 1)
+            specialty_bonus = 2 if getattr(d, "specialty", None) == getattr(p, "condition", None) else 0
+
+            score = severity_score + wait_score + specialty_bonus
+
+            if score > best_score:
+                best_score = score
+                best_action = Action(
                     action_type="assign",
                     patient_id=p.id,
                     doctor_id=d.id
                 )
 
-    return Action(action_type="wait")
+    return best_action if best_action else Action(action_type="wait")
 
 # -----------------------------
 # AGENT LOOP
@@ -129,7 +157,10 @@ async def run_inference_loop(task_type: str):
             # -----------------------------
             if client:
                 prompt = f"""
-                Hospital State: {state}
+                You are a hospital scheduler.
+
+                Patients: {state.patients_waiting}
+                Doctors: {state.doctors}
 
                 Reply ONLY:
                 assign(p_id, d_id)
@@ -145,7 +176,6 @@ async def run_inference_loop(task_type: str):
 
                 action_str = response.choices[0].message.content.strip()
                 action = Action(**parse_action(action_str))
-
             else:
                 action = fallback_policy(state)
 
@@ -166,7 +196,7 @@ async def run_inference_loop(task_type: str):
             break
 
         step_count += 1
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)  # faster UI
 
     # -----------------------------
     # FINAL SCORE
@@ -175,9 +205,10 @@ async def run_inference_loop(task_type: str):
         agent_status["final_score"] = sum(rewards) / len(rewards)
 
     agent_status["is_running"] = False
+    print("🏁 Agent Finished")
 
 # -----------------------------
-# STATE (🔥 FIXED)
+# STATE (FOR UI + JUDGE)
 # -----------------------------
 @app.get("/state")
 async def get_state():
@@ -197,7 +228,7 @@ async def get_state():
 
     return {
         "time": state.time,
-        "task": env.task_type,   #  IMPORTANT FIX
+        "task": env.task_type,
         "patients_waiting": [p.dict() for p in state.patients_waiting],
         "doctors": [d.dict() for d in state.doctors],
         "treated_patients": [p.dict() for p in state.treated_patients],
@@ -211,6 +242,10 @@ async def get_state():
 async def run_agent(request: Request, background_tasks: BackgroundTasks):
     data = await request.json()
     task = data.get("task", "easy")
+
+    # Prevent double run
+    if agent_status["is_running"]:
+        return {"message": "Agent already running"}
 
     background_tasks.add_task(run_inference_loop, task)
 

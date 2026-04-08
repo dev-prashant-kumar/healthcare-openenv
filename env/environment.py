@@ -31,7 +31,9 @@ class HealthcareEnv:
     def __init__(self, task_type: str = "easy"):
         self.task_type = task_type
         self.state: State = None
-        self.max_steps = 20
+
+        # 🔥 FIX: match agent loop
+        self.max_steps = 10
         self.current_step = 0
 
         self.history = {
@@ -75,42 +77,61 @@ class HealthcareEnv:
         self.current_step += 1
         self.state.time += 1
 
-        # Update doctor availability
+        # -----------------------------
+        # UPDATE DOCTORS
+        # -----------------------------
         for doc in self.state.doctors:
             if not doc.available and self.state.time >= doc.busy_until:
                 doc.available = True
 
-        # Update patients
+        # -----------------------------
+        # UPDATE PATIENTS
+        # -----------------------------
         for p in self.state.patients_waiting:
             p.wait_time += 1
 
             if p.wait_time > 2:
                 p.severity = min(10, p.severity + 1)
 
-            reward -= 0.7 if p.severity >= 8 else 0.1
+            # 🔥 FIXED balanced penalty
+            if p.severity >= 8:
+                reward -= 0.4
+            else:
+                reward -= 0.05
 
+        # -----------------------------
         # APPLY ACTION
+        # -----------------------------
         if action.action_type == "assign":
+            reward += 0.1  # 🔥 anti-wait bonus
             reward += self._handle_assign(action)
+
         elif action.action_type == "wait":
             reward -= 0.2
 
+        # -----------------------------
         # CHECK DEADLINES
+        # -----------------------------
         remaining_patients = []
         for p in self.state.patients_waiting:
             if p.wait_time > p.deadline:
-                reward -= 1.0
+                reward -= 0.5  # 🔥 reduced penalty
                 self.history["missed_deadlines"] += 1
             else:
                 remaining_patients.append(p)
 
         self.state.patients_waiting = remaining_patients
 
-        # NEW PATIENTS
+        # -----------------------------
+        # NEW PATIENTS (LESS RANDOM)
+        # -----------------------------
         if self.task_type in ["medium", "hard"]:
-            if random.random() < 0.4:
+            if random.random() < 0.25:
                 self._add_random_patient()
 
+        # -----------------------------
+        # DONE CONDITION
+        # -----------------------------
         done = (
             self.current_step >= self.max_steps
             or len(self.state.patients_waiting) == 0
@@ -140,13 +161,19 @@ class HealthcareEnv:
             None
         )
 
+        # 🔥 STRONG penalty for invalid action
         if not patient or not doctor or not doctor.available:
-            return -0.5
+            return -1.0
 
+        # -----------------------------
+        # DOCTOR BUSY TIME (DYNAMIC)
+        # -----------------------------
         doctor.available = False
-        doctor.busy_until = self.state.time + 2
+        doctor.busy_until = self.state.time + (1 if patient.severity < 7 else 2)
 
-        # 🔥 SMART REWARD
+        # -----------------------------
+        # REWARD CALCULATION
+        # -----------------------------
         if patient.severity >= 9:
             reward += 1.2
         elif patient.severity >= 7:
@@ -154,21 +181,35 @@ class HealthcareEnv:
         else:
             reward += 0.4
 
+        # specialty match
         if doctor.specialty == patient.condition:
             reward += 0.4
         else:
             reward += 0.1
 
+        # age priority
         if patient.age >= 60:
             reward += 0.2
 
+        # experienced doctor bonus
         if doctor.experience >= 8:
             reward += 0.2
 
+        # 🔥 urgency bonus
+        if patient.wait_time >= patient.deadline - 1:
+            reward += 0.5
+
+        # -----------------------------
+        # COMPLETE TREATMENT
+        # -----------------------------
         self.state.treated_patients.append(patient)
         self.state.patients_waiting.remove(patient)
 
         self.history["treated_patients"].append(patient.dict())
+
+        # 🔥 completion bonus
+        if len(self.state.patients_waiting) == 0:
+            reward += 1.5
 
         return reward
 
@@ -200,13 +241,8 @@ class HealthcareEnv:
         patients_data = patients_data[:2]
         doctors_data = doctors_data[:2]
 
-        patients = [
-            Patient(**p, wait_time=0) for p in patients_data
-        ]
-
-        doctors = [
-            Doctor(**d, available=True, busy_until=0) for d in doctors_data
-        ]
+        patients = [Patient(**p, wait_time=0) for p in patients_data]
+        doctors = [Doctor(**d, available=True, busy_until=0) for d in doctors_data]
 
         return State(time=0, patients_waiting=patients, doctors=doctors, rooms_available=2, treated_patients=[])
 
@@ -220,9 +256,7 @@ class HealthcareEnv:
         patients_data = patients_data[:4]
         doctors_data = doctors_data[:3]
 
-        patients = [
-            Patient(**p, wait_time=0) for p in patients_data
-        ]
+        patients = [Patient(**p, wait_time=0) for p in patients_data]
 
         doctors = [
             Doctor(**d, available=(i < 2), busy_until=(2 if i == 2 else 0))
@@ -238,9 +272,7 @@ class HealthcareEnv:
         random.shuffle(patients_data)
         random.shuffle(doctors_data)
 
-        patients = [
-            Patient(**p, wait_time=0) for p in patients_data
-        ]
+        patients = [Patient(**p, wait_time=0) for p in patients_data]
 
         doctors = [
             Doctor(**d, available=(i % 2 == 0), busy_until=(3 if i % 2 else 0))
