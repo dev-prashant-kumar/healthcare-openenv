@@ -1,0 +1,16 @@
+# This file is maintained automatically by uv.
+version = 1
+revision = 1
+
+[[package]]
+name = "healthcare-openenv"
+version = "0.1.0"
+source = { editable = "." }
+
+[[package]]
+name = "fastapi"
+version = "0.110.0"
+
+[[package]]
+name = "openenv"
+version = "0.2.0"

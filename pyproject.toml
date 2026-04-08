@@ -1,20 +1,23 @@
-[build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "healthcare-openenv"
 version = "0.1.0"
-description = "AI-powered hospital scheduling system for OpenEnv"
+description = "AI-powered hospital scheduling system"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
+# CRITICAL: Added the required dependency below
 dependencies = [
     "fastapi",
     "uvicorn",
     "jinja2",
     "openai",
-    "python-dotenv"
+    "python-dotenv",
+    "openenv>=0.2.0" 
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
+# CRITICAL: Added the entry point they asked for
+[project.scripts]
+server = "app.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build_meta"
