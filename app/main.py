@@ -71,16 +71,21 @@ def parse_action(action_str: str):
 # RESET
 # -----------------------------
 @app.post("/reset")
-async def reset(request: Request):
-    global env
+async def reset_env(request: Request):
+    global env, agent_status
     data = await request.json()
     task = data.get("task", "easy")
 
     env = HealthcareEnv(task_type=task)
-    state = env.reset()
+    env.reset()
 
-    return {"state": state.dict() if hasattr(state, "dict") else state}
+    agent_status = {
+        "is_running": False,
+        "total_reward": 0.0,
+        "final_score": 0.0
+    }
 
+    return {"status": "success"}
 # -----------------------------
 # STEP
 # -----------------------------
@@ -251,19 +256,3 @@ async def run_agent(request: Request, background_tasks: BackgroundTasks):
 
     return {"message": f"AI Agent started on {task}"}
 
-@app.post("/reset")
-async def reset_env(request: Request):
-    global env, agent_status
-    data = await request.json()
-    task = data.get("task", "easy")
-
-    env = HealthcareEnv(task_type=task)
-    env.reset()
-
-    agent_status = {
-        "is_running": False,
-        "total_reward": 0.0,
-        "final_score": 0.0
-    }
-
-    return {"status": "success"}
