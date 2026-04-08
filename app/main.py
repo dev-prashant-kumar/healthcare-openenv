@@ -252,19 +252,18 @@ async def run_agent(request: Request, background_tasks: BackgroundTasks):
     return {"message": f"AI Agent started on {task}"}
 
 @app.post("/reset")
-async def reset_env():
+async def reset_env(request: Request):
     global env, agent_status
-    # Reset the environment object
-    env = HealthcareEnv(task_type="easy")
+    data = await request.json()
+    task = data.get("task", "easy")
+
+    env = HealthcareEnv(task_type=task)
     env.reset()
-    
-    # Reset your UI status tracking
+
     agent_status = {
         "is_running": False,
         "total_reward": 0.0,
-        "last_action": "Environment Reset",
-        "task": "easy"
+        "final_score": 0.0
     }
-    
-    # CRITICAL: Return exactly what the validator wants
-    return {"status": "success", "message": "Environment reset successfully"}
+
+    return {"status": "success"}
