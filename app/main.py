@@ -250,3 +250,17 @@ async def run_agent(request: Request, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_inference_loop, task)
 
     return {"message": f"AI Agent started on {task}"}
+
+@app.post("/reset")
+async def reset_env():
+    global env, agent_status
+    # Re-initialize the environment
+    env = HealthcareEnv(task_type="easy")
+    env.reset()
+    
+    # Reset agent status
+    agent_status["is_running"] = False
+    agent_status["total_reward"] = 0.0
+    agent_status["last_action"] = "Reset"
+    
+    return {"status": "success", "message": "Environment reset"}
