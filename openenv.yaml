@@ -2,7 +2,7 @@ name: healthcare-env
 version: 1.0
 
 api:
-  base_url: http://localhost:7860
+  base_url: ""
 
 endpoints:
   reset:
@@ -22,4 +22,4 @@ tasks:
 
 reward:
   type: float
-  range: [0.0, 1.0]
+  range: [-1.0, 2.0]

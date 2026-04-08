@@ -1,209 +1,248 @@
-🏥 AI Healthcare Scheduling Environment (OpenEnv)
+# 🏥 Healthcare AI Agent – OpenEnv Competition
 
-📌 Overview
-
-This project implements a real-world simulation environment for training and evaluating AI agents on hospital appointment scheduling tasks.
-
-The environment follows the OpenEnv specification and simulates how hospitals manage patient appointments under constraints like urgency, doctor specialization, and limited time slots.
-
-Our goal is to provide a benchmark environment where AI agents can learn to make efficient, real-world scheduling decisions.
+An AI-powered hospital scheduling system that intelligently assigns doctors to patients in a simulated healthcare environment using LLM reasoning and reward-based optimization.
 
 ---
 
-🎯 Problem Statement
+## 🚀 Overview
 
-Hospitals often struggle with:
+Hospitals often face challenges in efficiently assigning doctors to patients under time pressure. This project simulates a real-time healthcare system where an AI agent must:
 
-- Managing high patient volume
-- Prioritizing emergency cases
-- Assigning the right specialist
-- Minimizing patient wait times
+* Prioritize high-severity patients
+* Minimize patient waiting time
+* Match doctor specialties
+* Optimize overall hospital efficiency
 
-This environment simulates these challenges and evaluates how well an AI agent performs in solving them.
+The system combines:
 
----
-
-🧠 Environment Design
-
-The environment is built around a hospital scheduling workflow.
-
-👀 Observation Space
-
-At each step, the agent receives:
-
-- Patient request:
-  
-  - Symptoms / issue description
-  - Urgency level (low, medium, emergency)
-
-- Doctor availability:
-  
-  - Name
-  - Specialization
-  - Available time slots
-
-- Current schedule state
+* 🤖 Large Language Model (LLM) decision-making
+* ⚙️ Rule-based fallback policy
+* 📊 Reward-driven environment simulation
 
 ---
 
-🎮 Action Space
+## 🧠 Problem Statement
 
-The agent must output:
+In real-world hospitals:
 
-{
-  "doctor": "Dr. Sharma",
-  "time": "10:00 AM",
-  "priority": "high"
-}
+* Critical patients may not get immediate attention
+* Doctors may be underutilized or mismatched
+* Delays can significantly impact outcomes
 
----
-
-🏆 Reward Function
-
-The reward is designed to reflect real-world scheduling quality:
-
-Factor| Score
-Emergency handled correctly| +0.4
-Correct doctor specialization| +0.2
-Efficient time allocation| +0.2
-Reduced wait time| +0.2
-
-❌ Penalties:
-
-- Delayed emergency → -0.5
-- Wrong specialization → -0.3
-- Double booking → -0.3
-
-This ensures continuous feedback and encourages optimal decision-making.
+This project solves that by building an **AI agent that learns to make optimal scheduling decisions step-by-step**.
 
 ---
 
-🧩 Tasks
+## ⚙️ System Architecture
 
-We provide 3 levels of difficulty:
-
-🟢 Easy
-
-- Single patient
-- Basic scheduling
-- No conflicts
-
-🟡 Medium
-
-- Multiple patients
-- Priority handling required
-
-🔴 Hard
-
-- Multiple patients
-- Conflicting schedules
-- Emergency interruptions
-- Optimization required
+```
+Frontend Dashboard (HTML + Tailwind)
+            ↓
+FastAPI Backend (API + Agent Loop)
+            ↓
+Healthcare Environment (Simulation Engine)
+            ↓
+AI Agent (LLM + Fallback Policy)
+```
 
 ---
 
-⚙️ OpenEnv API
+## 🤖 Agent Strategy
 
-The environment implements:
+The AI agent operates in a loop:
 
-- "reset()" → Initializes a new scheduling scenario
-- "step(action)" → Evaluates agent action
-- "state()" → Returns current environment state
+1. Observes hospital state
+2. Decides action:
 
----
+   * `assign(patient_id, doctor_id)`
+   * `wait()`
+3. Executes action in environment
+4. Receives reward
+5. Updates strategy
 
-🤖 Baseline Agent
+### 🔥 Decision Logic
 
-We provide a baseline script using the OpenAI API.
+* Uses **LLM (Qwen 72B via HuggingFace Router)** when available
+* Falls back to **smart heuristic policy** if API fails
 
-The agent:
+### 🧮 Reward System
 
-- Reads the current scenario
-- Generates scheduling decisions
-- Interacts with the environment
+Rewards are based on:
 
-Example Prompt:
-
-You are a hospital scheduling assistant.
-Prioritize emergency cases and assign the correct doctor specialization.
-Return output in JSON format.
-
----
-
-📊 Baseline Results
-
-Task| Score
-Easy| 0.92
-Medium| 0.81
-Hard| 0.67
-
-(Scores may vary slightly depending on model and randomness)
+* Patient severity (higher = higher reward)
+* Waiting time penalty
+* Doctor specialty match bonus
+* Doctor experience bonus
+* Penalty for missed deadlines
 
 ---
 
-🛠️ Setup Instructions
+## 🖥️ Features
 
-1. Clone the repository
+* 🎯 Real-time hospital simulation
+* 📊 Live dashboard with environment state
+* 🔁 Auto-running AI agent loop
+* ⚡ Async FastAPI backend
+* 🧪 Deterministic evaluation system
+* 🐳 Docker support
 
-git clone <your-repo-link>
+---
+
+## 📸 Demo
+
+> Add screenshots here for maximum impact
+
+```
+/assets/dashboard.png
+/assets/running.png
+```
+
+---
+
+## 🚀 Run Locally
+
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/dev-prashant-kumar/healthcare-openenv.git
 cd healthcare-openenv
+```
 
-2. Install dependencies
+### 2. Create virtual environment
 
+```bash
+python -m venv venv
+source venv/bin/activate   # Linux/Mac
+venv\Scripts\activate      # Windows
+```
+
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
+```
 
-3. Set API key
+### 4. Run server
 
-export OPENAI_API_KEY=your_api_key
+```bash
+uvicorn app.main:app --reload
+```
 
-4. Run baseline
-
-python scripts/baseline.py
-
----
-
-🐳 Docker Setup
-
-docker build -t healthcare-env .
-docker run healthcare-env
+Open:
+👉 http://localhost:8000
 
 ---
 
-☁️ Deployment
+## 🐳 Run with Docker
 
-This project is deployed as a containerized environment on Hugging Face Spaces with the "openenv" tag.
+### Build image
 
----
+```bash
+docker build -t healthcare-ai .
+```
 
-💡 Key Features
+### Run container
 
-- Real-world hospital scheduling simulation
-- Multi-patient and multi-doctor scenarios
-- Priority-aware decision making
-- Continuous reward system
-- Fully OpenEnv compliant
-
----
-
-🚀 Future Improvements
-
-- No-show handling
-- Rescheduling optimization
-- Multi-day scheduling
-- Patient satisfaction modeling
+```bash
+docker run -p 8000:8000 healthcare-ai
+```
 
 ---
 
-👥 Team
+## 🤗 Deploy on Hugging Face Spaces
 
-- Environment Architect
-- AI Integration Engineer
-- Grader & Simulation Engineer
+* Create a new Space
+* Select **Docker** runtime
+* Push your repo
+
+### Important:
+
+* Expose port: `7860`
+* Update Dockerfile:
+
+```dockerfile
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+```
 
 ---
 
-📜 License
+## 🔑 Environment Variables
 
-MIT License
+Set your HuggingFace API key:
+
+```bash
+HF_TOKEN=your_api_key_here
+```
+
+Optional:
+
+```bash
+API_BASE_URL=https://router.huggingface.co/v1
+MODEL_NAME=Qwen/Qwen2.5-72B-Instruct
+```
 
 ---
+
+## 📊 Evaluation Output Format
+
+The agent follows the required evaluation format:
+
+```
+[START] task=easy env=healthcare model=Qwen
+[STEP] step=1 action=assign(p1,d1) reward=0.80 done=false
+...
+[END] success=true steps=10 score=0.65
+```
+
+---
+
+## 🧪 Tech Stack
+
+* **Backend:** FastAPI
+* **AI:** OpenAI SDK (HF Router)
+* **Frontend:** HTML + Tailwind CSS
+* **Environment:** Custom RL-style simulation
+* **Containerization:** Docker
+* **Language:** Python
+
+---
+
+## 📁 Project Structure
+
+```
+app/
+ ├── main.py
+env/
+ ├── environment.py
+ ├── models.py
+data/
+templates/
+ ├── index.html
+Dockerfile
+requirements.txt
+```
+
+---
+
+## 🏁 Conclusion
+
+This project demonstrates how LLMs can be integrated with structured simulation environments to solve real-world optimization problems like healthcare scheduling.
+
+It highlights:
+
+* Decision-making under constraints
+* Hybrid AI systems (LLM + rules)
+* Real-time simulation control
+
+---
+
+## 👨‍💻 Author
+
+**Prashant Kumar**
+GitHub: https://github.com/dev-prashant-kumar
+
+---
+
+## ⭐ If you like this project
+
+Give it a star ⭐ and share your feedback!
