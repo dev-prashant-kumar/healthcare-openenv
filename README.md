@@ -1,3 +1,14 @@
+---
+
+title: Healthcare AI Agent
+emoji: 🏥
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_file: app/main.py
+pinned: false
+-------------
+
 # 🏥 Healthcare AI Agent – OpenEnv Competition
 
 An AI-powered hospital scheduling system that intelligently assigns doctors to patients in a simulated healthcare environment using LLM reasoning and reward-based optimization.
@@ -29,7 +40,7 @@ In real-world hospitals:
 * Doctors may be underutilized or mismatched
 * Delays can significantly impact outcomes
 
-This project solves that by building an **AI agent that learns to make optimal scheduling decisions step-by-step**.
+This project solves this by building an **AI agent that makes optimal scheduling decisions step-by-step**.
 
 ---
 
@@ -58,44 +69,34 @@ The AI agent operates in a loop:
    * `wait()`
 3. Executes action in environment
 4. Receives reward
-5. Updates strategy
+5. Updates decisions
 
 ### 🔥 Decision Logic
 
 * Uses **LLM (Qwen 72B via HuggingFace Router)** when available
-* Falls back to **smart heuristic policy** if API fails
+* Falls back to a **smart heuristic policy** if API is unavailable
 
 ### 🧮 Reward System
 
 Rewards are based on:
 
 * Patient severity (higher = higher reward)
-* Waiting time penalty
+* Waiting time penalties
 * Doctor specialty match bonus
 * Doctor experience bonus
-* Penalty for missed deadlines
+* Deadline penalties
 
 ---
 
 ## 🖥️ Features
 
 * 🎯 Real-time hospital simulation
-* 📊 Live dashboard with environment state
-* 🔁 Auto-running AI agent loop
+* 📊 Live dashboard UI
+* 🔁 Autonomous AI agent loop
 * ⚡ Async FastAPI backend
-* 🧪 Deterministic evaluation system
-* 🐳 Docker support
+* 🧪 Evaluation-ready output format
+* 🐳 Docker deployment support
 
----
-
-## 📸 Demo
-
-> Add screenshots here for maximum impact
-
-```
-/assets/dashboard.png
-/assets/running.png
-```
 
 ---
 
@@ -108,12 +109,13 @@ git clone https://github.com/dev-prashant-kumar/healthcare-openenv.git
 cd healthcare-openenv
 ```
 
-### 2. Create virtual environment
+### 2. Setup environment
 
 ```bash
 python -m venv venv
-source venv/bin/activate   # Linux/Mac
 venv\Scripts\activate      # Windows
+# OR
+source venv/bin/activate   # Linux/Mac
 ```
 
 ### 3. Install dependencies
@@ -135,13 +137,13 @@ Open:
 
 ## 🐳 Run with Docker
 
-### Build image
+### Build
 
 ```bash
 docker build -t healthcare-ai .
 ```
 
-### Run container
+### Run
 
 ```bash
 docker run -p 8000:8000 healthcare-ai
@@ -153,12 +155,11 @@ docker run -p 8000:8000 healthcare-ai
 
 * Create a new Space
 * Select **Docker** runtime
-* Push your repo
+* Connect your GitHub repo
 
-### Important:
+### ⚠️ Important
 
-* Expose port: `7860`
-* Update Dockerfile:
+Ensure your Dockerfile runs:
 
 ```dockerfile
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
@@ -167,8 +168,6 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
 ---
 
 ## 🔑 Environment Variables
-
-Set your HuggingFace API key:
 
 ```bash
 HF_TOKEN=your_api_key_here
@@ -185,8 +184,6 @@ MODEL_NAME=Qwen/Qwen2.5-72B-Instruct
 
 ## 📊 Evaluation Output Format
 
-The agent follows the required evaluation format:
-
 ```
 [START] task=easy env=healthcare model=Qwen
 [STEP] step=1 action=assign(p1,d1) reward=0.80 done=false
@@ -198,12 +195,11 @@ The agent follows the required evaluation format:
 
 ## 🧪 Tech Stack
 
-* **Backend:** FastAPI
-* **AI:** OpenAI SDK (HF Router)
-* **Frontend:** HTML + Tailwind CSS
-* **Environment:** Custom RL-style simulation
-* **Containerization:** Docker
-* **Language:** Python
+* FastAPI
+* OpenAI SDK (HF Router)
+* Tailwind CSS
+* Docker
+* Python (Pydantic, Async)
 
 ---
 
@@ -228,12 +224,6 @@ requirements.txt
 
 This project demonstrates how LLMs can be integrated with structured simulation environments to solve real-world optimization problems like healthcare scheduling.
 
-It highlights:
-
-* Decision-making under constraints
-* Hybrid AI systems (LLM + rules)
-* Real-time simulation control
-
 ---
 
 ## 👨‍💻 Author
@@ -243,6 +233,6 @@ GitHub: https://github.com/dev-prashant-kumar
 
 ---
 
-## ⭐ If you like this project
+## ⭐ Support
 
-Give it a star ⭐ and share your feedback!
+If you like this project, give it a ⭐ and share feedback!
