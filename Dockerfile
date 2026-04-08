@@ -1,16 +1,17 @@
+# Use lightweight Python
 FROM python:3.10-slim
 
+# Set working directory
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy all files (inference.py, app/, etc.)
+# Copy files
 COPY . .
 
-# Expose the port FastAPI runs on
-EXPOSE 7860
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Start the server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "7860"]
+# Expose port
+EXPOSE 8000
+
+# Start server
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

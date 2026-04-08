@@ -175,7 +175,6 @@ async def run_inference_loop(task_type: str):
         agent_status["final_score"] = sum(rewards) / len(rewards)
 
     agent_status["is_running"] = False
-    print("🏁 Finished")
 
 # -----------------------------
 # STATE (🔥 FIXED)
@@ -198,7 +197,7 @@ async def get_state():
 
     return {
         "time": state.time,
-        "task": env.task_type,   # 🔥 IMPORTANT FIX
+        "task": env.task_type,   #  IMPORTANT FIX
         "patients_waiting": [p.dict() for p in state.patients_waiting],
         "doctors": [d.dict() for d in state.doctors],
         "treated_patients": [p.dict() for p in state.treated_patients],
