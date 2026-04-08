@@ -146,83 +146,75 @@
           <pre
             id="state-json"
             class="p-6 text-emerald-400 h-[400px] overflow-auto"
-          >{}</pre>
+          >
+{}</pre
+          >
         </div>
       </div>
     </div>
 
     <script>
       let wasRunning = false;
-      let backendDownShown = false;
+      let pollTimer = null;
+      let pollStartTime = 0;
+      const MAX_POLL_DURATION = 60000; // 60 seconds timeout
 
       async function fetchState() {
+        // Check if we have exceeded the fixed time period (60s)
+        const elapsed = Date.now() - pollStartTime;
+
         try {
           const res = await fetch("/state");
           const data = await res.json();
-
-          backendDownShown = false;
 
           document.getElementById("state-json").innerText = JSON.stringify(
             data,
             null,
             2
           );
-
           const btn = document.getElementById("start-btn");
           const statusPill = document.getElementById("status-pill");
-          const rewardDisplay = document.getElementById("avg-reward");
-          const taskDisplay = document.getElementById("current-task");
-          const stepDisplay = document.getElementById("step-count");
 
-          // ✅ AGENT STATUS
           if (data.agent) {
-            rewardDisplay.innerText = Number(
-              data.agent?.total_reward || 0
-            ).toFixed(2);
+            document.getElementById("avg-reward").innerText =
+              data.agent.total_reward.toFixed(2);
 
             if (data.agent.is_running) {
               wasRunning = true;
-
-              btn.disabled = true;
-              btn.innerText = "Agent Running...";
-              btn.classList.add("cursor-not-allowed");
-
-              statusPill.innerText = "Active Simulation";
-              statusPill.className =
-                "px-4 py-1 rounded-full text-xs font-mono uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
+              // Reset the start time while the agent is active so it doesn't time out mid-run
+              pollStartTime = Date.now();
             } else {
+              // STOP CONDITION 1: Agent finished naturally
               if (wasRunning) {
-                showToast(
-                  `✅ Simulation Complete! Reward: ${data.agent.total_reward.toFixed(
-                    2
-                  )}`,
-                  "success"
-                );
+                showToast(`✅ Simulation Finished`, "success");
                 wasRunning = false;
+                stopPolling("Simulation Complete");
               }
-
-              btn.disabled = false;
-              btn.innerText = "Launch AI Agent";
-              btn.classList.remove("cursor-not-allowed");
-
-              statusPill.innerText = "System Idle";
-              statusPill.className =
-                "px-4 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono uppercase tracking-widest text-slate-400";
             }
           }
 
-          // ✅ TASK
-          taskDisplay.innerText = data.task || "None";
+          // STOP CONDITION 2: Fixed time period exceeded (System Idle for too long)
+          if (!wasRunning && elapsed > MAX_POLL_DURATION) {
+            stopPolling("Polling Timeout (Idle)");
+          }
 
-          // ✅ PROGRESS
           if (data.time !== undefined) {
-            stepDisplay.innerText = `${Math.min(data.time, 10)}/10`;
+            document.getElementById("step-count").innerText = `${Math.min(
+              data.time,
+              10
+            )}/10`;
           }
         } catch (e) {
-          if (!backendDownShown) {
-            showToast("⚠️ Backend not responding", "error");
-            backendDownShown = true;
-          }
+          stopPolling("Connection Error");
+        }
+      }
+
+      function stopPolling(reason) {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          console.log(`[System] ${reason}. Requests stopped.`);
+          document.getElementById("status-pill").innerText = "Logs Paused";
         }
       }
 
@@ -230,55 +222,36 @@
         const task = document.getElementById("task-select").value;
         const btn = document.getElementById("start-btn");
 
+        // RESET & RESTART
         btn.disabled = true;
         btn.innerText = "Launching...";
-        btn.classList.add("cursor-not-allowed");
+        pollStartTime = Date.now(); // Reset the clock
 
-        wasRunning = false;
+        if (!pollTimer) {
+          pollTimer = setInterval(fetchState, 2000);
+        }
 
         showToast(`🚀 Starting ${task} simulation`, "info");
 
-        try {
-          await fetch("/run-agent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ task: task }),
-          });
-        } catch (error) {
-          showToast("❌ Failed to start agent", "error");
-
-          btn.disabled = false;
-          btn.innerText = "Launch AI Agent";
-          btn.classList.remove("cursor-not-allowed");
-        }
+        await fetch("/run-agent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task: task }),
+        });
       }
 
-      function showToast(message, type = "info") {
+      function showToast(msg, type) {
         const container = document.getElementById("toast-container");
-        if (!container) return;
-
         const toast = document.createElement("div");
-
-        let bgColor = "bg-sky-500";
-        if (type === "success") bgColor = "bg-emerald-500";
-        if (type === "error") bgColor = "bg-red-500";
-
-        toast.className = `
-          px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white
-          ${bgColor}
-          animate-fade-in-up
-        `;
-
-        toast.innerText = message;
-
+        toast.className = `px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white bg-sky-500 animate-fade-in-up`;
+        toast.innerText = msg;
         container.appendChild(toast);
-
-        setTimeout(() => {
-          toast.remove();
-        }, 3000);
+        setTimeout(() => toast.remove(), 3000);
       }
 
-      setInterval(fetchState, 2000);
+      // Start initial polling
+      pollStartTime = Date.now();
+      pollTimer = setInterval(fetchState, 2000);
       fetchState();
     </script>
   </body>
