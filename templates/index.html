@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenEnv | Hospital Control</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap");
+
+      body {
+        background-color: #0f172a;
+        color: #e2e8f0;
+        font-family: "Inter", sans-serif;
+      }
+
+      .glass {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .glow-blue {
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+      }
+
+      .accent-gradient {
+        background: linear-gradient(to right, #38bdf8, #0ea5e9);
+      }
+
+      pre::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      pre::-webkit-scrollbar-thumb {
+        background: #334155;
+        border-radius: 4px;
+      }
+      @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.3s ease-out;
+      }
+    </style>
+  </head>
+
+  <div
+    id="toast-container"
+    class="fixed top-5 left-1/2 -translate-x-1/2 space-y-3 z-50"
+  ></div>
+
+  <body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-5xl mx-auto">
+      <!-- HEADER -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-extrabold text-white tracking-tight">
+            Hospital <span class="text-sky-400">AI</span> Console
+          </h1>
+          <p class="text-slate-400 text-sm">
+            OpenEnv Competition Healthcare Node
+          </p>
+        </div>
+
+        <div
+          id="status-pill"
+          class="px-4 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono uppercase tracking-widest text-slate-400"
+        >
+          System Idle
+        </div>
+      </div>
+
+      <!-- CONTROL BAR -->
+      <div
+        class="glass p-4 rounded-2xl mb-8 flex items-center justify-between border-l-4 border-sky-400"
+      >
+        <div class="flex items-center gap-4">
+          <label class="text-sm font-semibold text-slate-300"
+            >Difficulty:</label
+          >
+          <select
+            id="task-select"
+            class="bg-slate-800 text-white rounded-lg px-3 py-1 border border-slate-700"
+          >
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+
+        <button
+          onclick="startAgent()"
+          id="start-btn"
+          class="accent-gradient text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
+        >
+          Launch AI Agent
+        </button>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- TASK -->
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+          <span class="text-slate-400 text-xs uppercase">Current Task</span>
+          <div id="current-task" class="text-2xl font-bold text-white">
+            None
+          </div>
+        </div>
+
+        <!-- REWARD -->
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+          <span class="text-slate-400 text-xs uppercase">Total Reward</span>
+          <div id="avg-reward" class="text-2xl font-bold text-sky-400">
+            0.00
+          </div>
+        </div>
+
+        <!-- PROGRESS -->
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+          <span class="text-slate-400 text-xs uppercase">Progress</span>
+          <div id="step-count" class="text-2xl font-bold text-white">0/10</div>
+        </div>
+
+        <!-- STATE -->
+        <div class="md:col-span-3 glass rounded-2xl overflow-hidden">
+          <div class="bg-slate-800 p-4 flex justify-between">
+            <h2>Live Environment State</h2>
+            <button onclick="fetchState()" class="bg-sky-500 px-3 py-1 rounded">
+              Refresh
+            </button>
+          </div>
+
+          <pre
+            id="state-json"
+            class="p-6 text-emerald-400 h-[400px] overflow-auto"
+          >
+{}</pre
+          >
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let wasRunning = false;
+      let backendDownShown = false;
+
+      async function fetchState() {
+        try {
+          const res = await fetch("/state");
+          const data = await res.json();
+
+          // ✅ Backend is working → reset error flag
+          backendDownShown = false;
+
+          // RAW JSON
+          document.getElementById("state-json").innerText = JSON.stringify(
+            data,
+            null,
+            2
+          );
+
+          const btn = document.getElementById("start-btn");
+          const statusPill = document.getElementById("status-pill");
+          const rewardDisplay = document.getElementById("avg-reward");
+          const taskDisplay = document.getElementById("current-task");
+          const stepDisplay = document.getElementById("step-count");
+
+          // -----------------------------
+          // AGENT STATUS
+          // -----------------------------
+          if (data.agent) {
+            rewardDisplay.innerText = (data.agent.total_reward || 0).toFixed(2);
+
+            if (data.agent.is_running) {
+              // 🔵 RUNNING
+              wasRunning = true;
+
+              btn.disabled = true;
+              btn.innerText = "Agent Running...";
+              btn.classList.add("cursor-not-allowed");
+
+              statusPill.innerText = "Active Simulation";
+              statusPill.className =
+                "px-4 py-1 rounded-full text-xs font-mono uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20";
+            } else {
+              // ✅ FINISHED (trigger toast ONCE)
+              if (wasRunning) {
+                showToast(
+                  `✅ Simulation Complete! Reward: ${data.agent.total_reward.toFixed(
+                    2
+                  )}`,
+                  "success"
+                );
+                wasRunning = false;
+              }
+
+              // 🔄 RESET BUTTON
+              btn.disabled = false;
+              btn.innerText = "Launch AI Agent";
+              btn.classList.remove("cursor-not-allowed");
+
+              statusPill.innerText = "System Idle";
+              statusPill.className =
+                "px-4 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono uppercase tracking-widest text-slate-400";
+            }
+          }
+
+          // -----------------------------
+          // TASK NAME
+          // -----------------------------
+          taskDisplay.innerText = data.task || "None";
+
+          // -----------------------------
+          // PROGRESS
+          // -----------------------------
+          if (data.time !== undefined) {
+            stepDisplay.innerText = `${Math.min(data.time, 10)}/10`;
+          }
+        } catch (e) {
+          // ❌ Show error only once (no spam)
+          if (!backendDownShown) {
+            showToast("⚠️ Backend not responding", "error");
+            backendDownShown = true;
+          }
+        }
+      }
+
+      // -----------------------------
+      // START AGENT
+      // -----------------------------
+      async function startAgent() {
+        const task = document.getElementById("task-select").value;
+        const btn = document.getElementById("start-btn");
+
+        btn.disabled = true;
+        btn.innerText = "Launching...";
+        btn.classList.add("cursor-not-allowed");
+
+        wasRunning = false;
+
+        showToast(`🚀 Starting ${task} simulation`, "info");
+
+        try {
+          await fetch("/run-agent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task: task }),
+          });
+        } catch (error) {
+          showToast("❌ Failed to start agent", "error");
+
+          btn.disabled = false;
+          btn.innerText = "Launch AI Agent";
+          btn.classList.remove("cursor-not-allowed");
+        }
+      }
+
+      // -----------------------------
+      // TOAST SYSTEM
+      // -----------------------------
+      function showToast(message, type = "info") {
+        const container = document.getElementById("toast-container");
+
+        if (!container) return;
+
+        const toast = document.createElement("div");
+
+        let bgColor = "bg-sky-500";
+        if (type === "success") bgColor = "bg-emerald-500";
+        if (type === "error") bgColor = "bg-red-500";
+
+        toast.className = `
+      px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white
+      ${bgColor}
+      animate-fade-in-up
+    `;
+
+        toast.innerText = message;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
+
+      // -----------------------------
+      // AUTO REFRESH
+      // -----------------------------
+      setInterval(fetchState, 2000);
+      fetchState();
+    </script>
+  </body>
+</html>
