@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenEnv | Hospital Control</title>
@@ -8,251 +8,239 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap");
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap");
 
-      body {
-        background-color: #0f172a;
-        color: #e2e8f0;
-        font-family: "Inter", sans-serif;
-      }
-
-      .glass {
-        background: rgba(30, 41, 59, 0.7);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-
-      .glow-blue {
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
-      }
-
-      .accent-gradient {
-        background: linear-gradient(to right, #38bdf8, #0ea5e9);
-      }
-
-      pre::-webkit-scrollbar {
-        width: 8px;
-      }
-
-      pre::-webkit-scrollbar-thumb {
-        background: #334155;
-        border-radius: 4px;
-      }
-
-      @keyframes fade-in-up {
-        from {
-          opacity: 0;
-          transform: translateY(20px);
+        body {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            font-family: "Inter", sans-serif;
         }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
 
-      .animate-fade-in-up {
-        animation: fade-in-up 0.3s ease-out;
-      }
+        .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glow-blue {
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+        }
+
+        .accent-gradient {
+            background: linear-gradient(to right, #38bdf8, #0ea5e9);
+        }
+
+        @keyframes fade-in-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in-up {
+            animation: fade-in-up 0.3s ease-out;
+        }
     </style>
-  </head>
+</head>
 
-  <body class="min-h-screen p-4 md:p-8">
-    <!-- ✅ TOAST CONTAINER (FIXED POSITION) -->
-    <div
-      id="toast-container"
-      class="fixed top-5 left-1/2 -translate-x-1/2 space-y-3 z-50"
-    ></div>
+<body class="min-h-screen p-4 md:p-8">
 
-    <div class="max-w-5xl mx-auto">
-      <!-- HEADER -->
-      <div class="flex items-center justify-between mb-8">
+<div id="toast-container" class="fixed top-5 left-1/2 -translate-x-1/2 space-y-3 z-50"></div>
+
+<div class="max-w-5xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-extrabold text-white tracking-tight">
-            Hospital <span class="text-sky-400">AI</span> Console
-          </h1>
-          <p class="text-slate-400 text-sm">
-            OpenEnv Competition Healthcare Node
-          </p>
+            <h1 class="text-3xl font-extrabold text-white tracking-tight">
+                Hospital <span class="text-sky-400">AI</span> Console
+            </h1>
+            <p class="text-slate-400 text-sm">OpenEnv Healthcare Environment</p>
         </div>
 
-        <div
-          id="status-pill"
-          class="px-4 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono uppercase tracking-widest text-slate-400"
-        >
-          System Idle
+        <div id="status-pill" class="px-4 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono uppercase tracking-widest text-slate-400">
+            System Idle
         </div>
-      </div>
-
-      <!-- CONTROL BAR -->
-      <div
-        class="glass p-4 rounded-2xl mb-8 flex items-center justify-between border-l-4 border-sky-400"
-      >
-        <div class="flex items-center gap-4">
-          <label class="text-sm font-semibold text-slate-300"
-            >Difficulty:</label
-          >
-          <select
-            id="task-select"
-            class="bg-slate-800 text-white rounded-lg px-3 py-1 border border-slate-700"
-          >
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-
-        <button
-          onclick="startAgent()"
-          id="start-btn"
-          class="accent-gradient text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform"
-        >
-          Launch AI Agent
-        </button>
-      </div>
-
-      <!-- DASHBOARD -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- TASK -->
-        <div class="glass p-6 rounded-2xl text-center glow-blue">
-          <span class="text-slate-400 text-xs uppercase">Current Task</span>
-          <div id="current-task" class="text-2xl font-bold text-white">
-            None
-          </div>
-        </div>
-
-        <!-- REWARD -->
-        <div class="glass p-6 rounded-2xl text-center glow-blue">
-          <span class="text-slate-400 text-xs uppercase">Total Reward</span>
-          <div id="avg-reward" class="text-2xl font-bold text-sky-400">
-            0.00
-          </div>
-        </div>
-
-        <!-- PROGRESS -->
-        <div class="glass p-6 rounded-2xl text-center glow-blue">
-          <span class="text-slate-400 text-xs uppercase">Progress</span>
-          <div id="step-count" class="text-2xl font-bold text-white">0/10</div>
-        </div>
-
-        <!-- STATE -->
-        <div class="md:col-span-3 glass rounded-2xl overflow-hidden">
-          <div class="bg-slate-800 p-4 flex justify-between">
-            <h2>Live Environment State</h2>
-            <button onclick="fetchState()" class="bg-sky-500 px-3 py-1 rounded">
-              Refresh
-            </button>
-          </div>
-
-          <pre
-            id="state-json"
-            class="p-6 text-emerald-400 h-[400px] overflow-auto"
-          >
-{}</pre
-          >
-        </div>
-      </div>
     </div>
 
-    <script>
-      let wasRunning = false;
-      let pollTimer = null;
-      let pollStartTime = 0;
-      const MAX_POLL_DURATION = 60000; // 60 seconds timeout
+    <!-- CONTROLS -->
+    <div class="glass p-4 rounded-2xl mb-8 flex items-center justify-between border-l-4 border-sky-400">
+        <div class="flex items-center gap-4">
+            <label class="text-sm font-semibold text-slate-300">Difficulty:</label>
+            <select id="task-select" class="bg-slate-800 text-white rounded-lg px-3 py-1 border border-slate-700">
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
 
-      async function fetchState() {
-        // Check if we have exceeded the fixed time period (60s)
-        const elapsed = Date.now() - pollStartTime;
+        <button onclick="startAgent()" id="start-btn"
+            class="accent-gradient text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform">
+            Launch AI Agent
+        </button>
+    </div>
 
-        try {
-          const res = await fetch("/state");
-          const data = await res.json();
+    <!-- STATS -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
 
-          document.getElementById("state-json").innerText = JSON.stringify(
-            data,
-            null,
-            2
-          );
-          const btn = document.getElementById("start-btn");
-          const statusPill = document.getElementById("status-pill");
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+            <span class="text-slate-400 text-xs uppercase">Current Task</span>
+            <div id="current-task" class="text-2xl font-bold text-white capitalize">None</div>
+        </div>
 
-          if (data.agent) {
-            document.getElementById("avg-reward").innerText =
-              data.agent.total_reward.toFixed(2);
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+            <span class="text-slate-400 text-xs uppercase">Total Reward</span>
+            <div id="avg-reward" class="text-2xl font-bold text-sky-400">0.00</div>
+        </div>
 
-            if (data.agent.is_running) {
-              wasRunning = true;
-              // Reset the start time while the agent is active so it doesn't time out mid-run
-              pollStartTime = Date.now();
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+            <span class="text-slate-400 text-xs uppercase">Progress</span>
+            <div id="step-count" class="text-2xl font-bold text-white">0/10</div>
+        </div>
+
+        <div class="glass p-6 rounded-2xl text-center glow-blue">
+            <span class="text-slate-400 text-xs uppercase">Final Score</span>
+            <div id="final-score" class="text-2xl font-bold text-emerald-400">0.01</div>
+        </div>
+
+        <!-- STATE VIEW -->
+        <div class="md:col-span-4 glass rounded-2xl overflow-hidden">
+            <div class="bg-slate-800 p-4 flex justify-between">
+                <h2 class="font-semibold">Live Environment State</h2>
+                <button onclick="fetchState()" class="bg-sky-500 px-3 py-1 rounded text-sm font-bold">
+                    Refresh
+                </button>
+            </div>
+
+            <pre id="state-json" class="p-6 text-emerald-400 h-[400px] overflow-auto text-sm font-mono">{}</pre>
+        </div>
+
+    </div>
+</div>
+
+<script>
+let pollTimer = null;
+let wasRunning = false;
+
+async function fetchState() {
+    const btn = document.getElementById("start-btn");
+    const status = document.getElementById("status-pill");
+
+    try {
+        const res = await fetch("/state");
+
+        if (!res.ok) throw new Error("State fetch failed");
+
+        const data = await res.json();
+
+        document.getElementById("state-json").innerText = JSON.stringify(data, null, 2);
+
+        if (data.task) {
+            document.getElementById("current-task").innerText = data.task;
+        }
+
+        if (data.agent) {
+            const agent = data.agent;
+
+            document.getElementById("avg-reward").innerText = (agent.total_reward || 0).toFixed(2);
+            document.getElementById("final-score").innerText = (agent.final_score || 0.01).toFixed(2);
+
+            // Reset classes first (FIX)
+            status.classList.remove("text-sky-400");
+
+            if (agent.is_running) {
+                wasRunning = true;
+                status.innerText = "Agent Active";
+                status.classList.add("text-sky-400");
+
+                btn.disabled = true;
+                btn.innerText = "Running...";
             } else {
-              // STOP CONDITION 1: Agent finished naturally
-              if (wasRunning) {
-                showToast(`✅ Simulation Finished`, "success");
-                wasRunning = false;
-                stopPolling("Simulation Complete");
-              }
+                status.innerText = "System Idle";
+
+                btn.disabled = false;
+                btn.innerText = "Launch AI Agent";
+
+                if (wasRunning) {
+                    showToast(`✅ Finished | Score: ${agent.final_score.toFixed(2)}`, "success");
+                    wasRunning = false;
+                }
             }
-          }
-
-          // STOP CONDITION 2: Fixed time period exceeded (System Idle for too long)
-          if (!wasRunning && elapsed > MAX_POLL_DURATION) {
-            stopPolling("Polling Timeout (Idle)");
-          }
-
-          if (data.time !== undefined) {
-            document.getElementById("step-count").innerText = `${Math.min(
-              data.time,
-              10
-            )}/10`;
-          }
-        } catch (e) {
-          stopPolling("Connection Error");
-        }
-      }
-
-      function stopPolling(reason) {
-        if (pollTimer) {
-          clearInterval(pollTimer);
-          pollTimer = null;
-          console.log(`[System] ${reason}. Requests stopped.`);
-          document.getElementById("status-pill").innerText = "Logs Paused";
-        }
-      }
-
-      async function startAgent() {
-        const task = document.getElementById("task-select").value;
-        const btn = document.getElementById("start-btn");
-
-        // RESET & RESTART
-        btn.disabled = true;
-        btn.innerText = "Launching...";
-        pollStartTime = Date.now(); // Reset the clock
-
-        if (!pollTimer) {
-          pollTimer = setInterval(fetchState, 2000);
         }
 
-        showToast(`🚀 Starting ${task} simulation`, "info");
+        if (data.time !== undefined) {
+            document.getElementById("step-count").innerText = `${Math.min(data.time, 10)}/10`;
+        }
 
-        await fetch("/run-agent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ task: task }),
+    } catch (e) {
+        console.error("Fetch error:", e);
+        showToast("⚠️ Connection issue", "error");
+    }
+}
+
+async function startAgent() {
+    const task = document.getElementById("task-select").value;
+    const btn = document.getElementById("start-btn");
+
+    btn.disabled = true;
+    btn.innerText = "Starting...";
+
+    showToast(`🚀 Starting ${task}...`, "info");
+
+    try {
+        // RESET FIRST (IMPORTANT)
+        const resetRes = await fetch("/reset", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ task })
         });
-      }
 
-      function showToast(msg, type) {
-        const container = document.getElementById("toast-container");
-        const toast = document.createElement("div");
-        toast.className = `px-4 py-3 rounded-lg shadow-lg text-sm font-semibold text-white bg-sky-500 animate-fade-in-up`;
-        toast.innerText = msg;
-        container.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-      }
+        if (!resetRes.ok) throw new Error("Reset failed");
 
-      // Start initial polling
-      pollStartTime = Date.now();
-      pollTimer = setInterval(fetchState, 2000);
-      fetchState();
-    </script>
-  </body>
+        // START AGENT
+        const runRes = await fetch("/run-agent", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ task })
+        });
+
+        if (!runRes.ok) throw new Error("Run failed");
+
+        // FIX: Always reset polling cleanly
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(fetchState, 1500);
+
+    } catch (e) {
+        console.error(e);
+        showToast("❌ Failed to start agent", "error");
+
+        btn.disabled = false;
+        btn.innerText = "Launch AI Agent";
+    }
+}
+
+function showToast(msg, type) {
+    const container = document.getElementById("toast-container");
+    const toast = document.createElement("div");
+
+    let color = "bg-sky-500";
+    if (type === "success") color = "bg-emerald-500";
+    if (type === "error") color = "bg-rose-500";
+
+    toast.className = `px-6 py-3 rounded-xl text-white font-bold ${color} animate-fade-in-up`;
+    toast.innerText = msg;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// INIT (SAFE POLLING)
+if (pollTimer) clearInterval(pollTimer);
+pollTimer = setInterval(fetchState, 2000);
+fetchState();
+</script>
+
+</body>
 </html>
